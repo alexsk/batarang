@@ -16,6 +16,9 @@
 
     <div class="right averages">
       <div>The last digest cycle took {{ lastDigestTime | number }} ms and had {{ numWatchers || 0 }} watchers</div>
+      <div ng-show="::topDigests[0]">Top {{ ::topDigestsNumber }} digests: <button ng-click="clearTopDigests()">Clear top</button><br>
+        <span ng-repeat="digest in topDigests track by digest.time+digest.numWatchers">#{{ $index+1 }}: {{ ::digest.time | number }} ms and {{ ::digest.numWatchers }} watchers.<br></span>
+      </div>
       <div ng-show="::last30Digests.watchers">The last 30 digest cycles averaged {{ last30Digests.time | number }} ms and averaged {{ last30Digests.watchers | number }} watchers.</div>
       <div ng-show="::last5Seconds.digests">There were {{ last5Seconds.digests | number }} digests in the last 5 seconds, averaging {{ last5Seconds.digests / 5 | number }} digests/sec</div>
       <div ng-show="::last30Seconds.digests">There were {{ last30Seconds.digests | number }} digests in the last 30 seconds, averaging {{ last30Seconds.digests / 30 | number }} digests/sec</div>
@@ -23,18 +26,19 @@
   </div>
   <hr>
   <h2>Digest timings</h2>
-  <div class="watcher-table">
+  <div ng-repeat="digest in topDigests track by digest.time+digest.numWatchers" class="watcher-table">
+    <h3>Top #{{ $index+1 }}: {{ ::digest.time | number }} ms and {{ ::digest.numWatchers }} watchers</h3>
     <div class="watcher-table-head watcher-table-row">
       <span class="watcher-text">Watcher text</span>
       <span class="watcher-time">Total time</span>
       <span class="watcher-count"># of Watchers</span>
       <span class="watcher-avg">Avg. time</span>
     </div>
-    <div ng-repeat-start="watcher in watchTimings" class="watcher-table-row">
-      <div class="watcher-text"><pre>{{ watcher.text }}</pre></div>
-      <div class="watcher-time"><pre>{{ watcher.time | number }} ms</pre></div>
-      <div class="watcher-count"><pre>{{ watcher.count }}</pre></div>
-      <div class="watcher-avg"><pre>{{ watcher.time / watcher.count | number }} ms</pre></div>
+    <div ng-repeat-start="watcher in ::digest.watchTimings" class="watcher-table-row">
+      <div class="watcher-text"><pre>{{ ::watcher.text }}</pre></div>
+      <div class="watcher-time"><pre>{{ ::watcher.time | number }} ms</pre></div>
+      <div class="watcher-count"><pre>{{ ::watcher.count }}</pre></div>
+      <div class="watcher-avg"><pre>{{ ::watcher.time / watcher.count | number }} ms</pre></div>
     </div>
     <hr ng-repeat-end ng-show="::!$last">
   </div>

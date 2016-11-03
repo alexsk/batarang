@@ -8,11 +8,15 @@
 // https://github.com/darach/eep-js
 
 angular.module('batarang.app.perf', [])
-  .controller('PerfController', ['$scope', '$timeout', '$window', PerfController]);
+    .controller('PerfController', ['$scope', '$timeout', '$window', PerfController]);
 
 function PerfController($scope, $timeout, $window) {
 
-  $scope.watchTimings = [];
+  var TOP_DIGESTS_COUNT = 3;
+
+  $scope.topDigests = [];
+  $scope.topDigestsNumber = TOP_DIGESTS_COUNT;
+  $scope.lastDigestTime = 0;
   $scope.numWatchers = 0;
   $scope.last30Digests = {};
   $scope.last30Seconds = {};
@@ -55,9 +59,9 @@ function PerfController($scope, $timeout, $window) {
   var digests = 0;
   setInterval(() => {
     last30Seconds.enqueue(digests);
-    last5Seconds.enqueue(digests);
-    digests = 0;
-  }, 1000);
+  last5Seconds.enqueue(digests);
+  digests = 0;
+}, 1000);
 
 
   $scope.$on('scope:digest', function (e, digestData) {
@@ -67,36 +71,54 @@ function PerfController($scope, $timeout, $window) {
     digests++;
 
     $scope.lastDigestTime = digestData.time;
-
-    var reducedWatches = digestData.events.reduce(function (prev, next) {
-      if (!prev[next.watch]) {
-        prev[next.watch] = {
-          time: next.time,
-          count: 1
-        };
-      } else {
-        prev[next.watch].time += next.time;
-        prev[next.watch].count++;
-      }
-      return prev;
-    }, {});
-
-    $scope.watchTimings = Object.keys(reducedWatches)
-    .filter(function (key) { return reducedWatches[key].time; })
-    .map(function (key) {
-      return {
-        text: key.trim().replace(/\s{2,}/g, ' '),
-        time: reducedWatches[key].time,
-        count: reducedWatches[key].count
-      };
-    })
-    .sort(function (a, b) {
-      return b.time - a.time;
-    });
-
     $scope.numWatchers = digestData.events.length;
     addDataToCanvas(digestData.events.length, digestData.time);
+
+    if ($scope.topDigests.length < TOP_DIGESTS_COUNT ||
+        $scope.lastDigestTime > $scope.topDigests[$scope.topDigests.length - 1].time) {
+      var reducedWatches = digestData.events.reduce(function (prev, next) {
+        if (!prev[next.watch]) {
+          prev[next.watch] = {
+            time: next.time,
+            count: 1
+          };
+        } else {
+          prev[next.watch].time += next.time;
+          prev[next.watch].count++;
+        }
+        return prev;
+      }, {});
+
+      var watchTimings = Object.keys(reducedWatches)
+          .filter(function (key) { return reducedWatches[key].time; })
+          .map(function (key) {
+            return {
+              text: key.trim().replace(/\s{2,}/g, ' '),
+              time: reducedWatches[key].time,
+              count: reducedWatches[key].count
+            };
+          })
+          .sort(function (a, b) {
+            return b.time - a.time;
+          });
+
+      $scope.topDigests.push({
+        time: digestData.time,
+        numWatchers: digestData.events.length,
+        watchTimings: watchTimings
+      });
+      $scope.topDigests = $scope.topDigests
+          .sort(function (a, b) {
+            return b.time - a.time;
+          })
+          .slice(0, TOP_DIGESTS_COUNT);
+    }
+
   });
+
+  $scope.clearTopDigests = function () {
+    $scope.topDigests = [];
+  };
 
   function getColor(metric, threshold) {
     if (metric > threshold) {
